@@ -7,6 +7,10 @@
 #include <chrono>
 #include <iomanip>
 #include <ctime>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <vector>
+#include <boost/algorithm/string.hpp>
+#include <boost/json.hpp>
 
 std::string hmac_sha256_base64(std::string &data, std::string &key) {
   CryptoPP::HMAC<CryptoPP::SHA256> hmac((CryptoPP::byte *)key.c_str(), key.length());
@@ -28,12 +32,17 @@ std::string hmac_sha256_base64(std::string &data, std::string &key) {
 }
 
 std::string get_iso_time() {
-  auto now = std::time(nullptr);
-  std::string timestamp = std::put_time(std::localtime(&now), "%F %T%z")._M_fmt;
-  return timestamp;
+  boost::posix_time::ptime t = boost::posix_time::microsec_clock::universal_time();
+  auto temp_data = boost::posix_time::to_iso_extended_string(t);
+  temp_data = temp_data.substr(0, temp_data.size()-3);
+  return temp_data + "Z";
 }
 
-Okex::Okex::Okex(asio::io_context &context) : context_(context) {}
+Okex::Okex::Okex(asio::io_context &context, const std::string & api_key, const std::string &secret_key, const std::string &passphrase) : context_(context) {
+  api_key_ = api_key;
+  secret_key_ = secret_key;
+  passphrase_ = passphrase;
+}
 
 Okex::post_request_sp_t
 Okex::Okex::generate_post_request(const std::string &request_path,
@@ -44,9 +53,9 @@ Okex::Okex::generate_post_request(const std::string &request_path,
   std::string timestamp = get_iso_time();
   std::string method = "GET";
   std::string encode_data = timestamp + method + request_path + body;
-  
-  req_->set("OK-ACCESS-SIGN", hmac_sha256_base64(encode_data, secret_key_));
   req_->set("OK-ACCESS-TIMESTAMP", timestamp);
+  req_->set("OK-ACCESS-SIGN", hmac_sha256_base64(encode_data, secret_key_));
+  
 
   return req_;
 }
@@ -71,9 +80,10 @@ Okex::Okex::generate_get_request(const std::string &request_path) {
   std::string timestamp = get_iso_time();
   std::string method = "GET";
   std::string encode_data = timestamp + method + request_path;
-  
-  req_->set("OK-ACCESS-SIGN", hmac_sha256_base64(encode_data, secret_key_));
+
   req_->set("OK-ACCESS-TIMESTAMP", timestamp);
+  req_->set("OK-ACCESS-SIGN", hmac_sha256_base64(encode_data, secret_key_));
+  std::cout << timestamp << std::endl;
 
   return req_;
 }
@@ -87,4 +97,32 @@ Okex::get_request_sp_t Okex::Okex::generate_get_request_comm() {
   req_->set("OK-ACCESS-KEY", api_key_);
   req_->set("OK-ACCESS-PASSPHRASE", passphrase_);
   return req_;
+}
+
+Okex::ss_map_sp_t Okex::Okex::account_balance(const std::vector<std::string> &ccy) {
+  std::string query_uri = "/api/v5/account/balance";
+  ss_map_sp_t result = std::make_shared<ss_map_t>();
+
+  if (ccy.size() != 0) {
+    query_uri += "?ccy=";
+    query_uri += boost::join(ccy, ",");
+  }
+  
+  auto request = generate_get_request(query_uri);
+  
+  auto respone_body = send_request(request);
+
+  auto json_obj = boost::json::parse(respone_body).as_object();
+  
+  if (json_obj["code"].as_string() != "0") {
+    std::cout << json_obj["msg"].as_string() << std::endl;
+    throw std::exception();
+  }
+
+  for (auto item : json_obj["data"].as_array()[0].as_object()["details"].as_array()) {
+    auto item_obj = item.as_object();
+    (*result)[std::string(item_obj["ccy"].as_string().data())] = item_obj["cashBal"].as_string().data();
+  }
+
+  return result;
 }
