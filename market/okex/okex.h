@@ -31,6 +31,40 @@ typedef std::shared_ptr<response_t> response_sp_t;
 typedef std::map<std::string, std::string> ss_map_t;
 typedef std::shared_ptr<ss_map_t> ss_map_sp_t;
 
+
+namespace trade_order {
+  namespace tdMode {
+    const std::string cash = "cash";
+    const std::string isolated = "isolated";
+    const std::string cross = "cross";
+  };
+
+  namespace posSide {
+    const std::string buy = "buy";
+    const std::string sell = "sell";
+    const std::string _long = "long";
+    const std::string _short = "short";
+  }
+
+  namespace ordType {
+    // 普通委托
+    // 限价单，要求指定sz 和 px
+    const std::string limit = "limit";
+    // 市价单
+    const std::string market = "market";
+    
+    // 高级委托
+    // 限价委托，Post-only在下单那一刻只做maker，如果该笔订单的任何部分会吃掉当前挂单深度，则该订单将被全部撤销。
+    const std::string post_only = "post_only";
+    // 限价委托，全部成交或立即取消，如果无法全部成交该笔订单，则该订单将被全部撤销。
+    const std::string fok = "fok";
+    // 限价委托，立即成交并取消剩余，立即按照委托价格成交，并取消该订单剩余未完成数量，不会再深度列表上展示委托数量。
+    const std::string ioc = "ioc";
+    // 市价委托，立即成交并取消剩余，仅适用于交割合约和永续合约。 
+    const std::string optimal_limit_ioc = "optimal_limit_ioc";
+  }
+}
+
 class Okex {
 public:
   Okex(asio::io_context &context, const std::string &api_key,

@@ -14,7 +14,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 message(${CMAKE_MODULE_PATH})
 
 add_subdirectory("market/okex")
+add_subdirectory("notifier/dingding")
 find_package(Boost REQUIRED json thread)
 
-add_executable(BitCoinQuantization main.cpp)
-target_link_libraries(BitCoinQuantization ${Boost_LIBRARIES} okex)
+add_executable(BitCoinQuantization test.cpp)
+target_link_libraries(BitCoinQuantization ${Boost_LIBRARIES} okex dingding)
