@@ -38,7 +38,7 @@ struct KeyWords{};
 
 class DingDing {
 public:
-  DingDing(const KeyWords &, asio::io_context &context, const std::string &token);
+  DingDing(const KeyWords &, asio::io_context &context, const std::string &token, const std::string &key_words);
   int send_text(const std::string &level, const std::string &message);
 private:
   post_request_sp_t generate_post_request(const std::string &data);
@@ -78,6 +78,7 @@ private:
   const std::string port = "443";
   std::string token_ = "";
   std::string request_uri_ = "";
+  std::string key_words_ = "";
   asio::io_context &context_;
 };
 

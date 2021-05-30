@@ -3,13 +3,14 @@
 #include <boost/format.hpp>
 #include <iostream>
 
-DingDing::DingDing::DingDing(const KeyWords &, asio::io_context &context, const std::string &token) : context_(context) {
+DingDing::DingDing::DingDing(const KeyWords &, asio::io_context &context, const std::string &token, const std::string &key_words) : context_(context) {
   token_ = token;
   request_uri_ = "/robot/send?access_token=" + token;
+  key_words_ = key_words;
 }
 
 int DingDing::DingDing::send_text(const std::string &level, const std::string &message) {
-  std::string send_data = (boost::format("[%1%]%2%")%level%message).str();
+  std::string send_data = (boost::format("[%1%][%2%]%3%")%key_words_%level%message).str();
   std::string message_json_s = boost::json::serialize(boost::json::value({
     {"msgtype", "text"},
     {"text", {{"content", send_data}}}

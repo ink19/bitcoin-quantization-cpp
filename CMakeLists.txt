@@ -15,7 +15,8 @@ message(${CMAKE_MODULE_PATH})
 
 add_subdirectory("market/okex")
 add_subdirectory("notifier/dingding")
+add_subdirectory("strategy/grid_trading")
 find_package(Boost REQUIRED json thread)
 
-add_executable(BitCoinQuantization test.cpp)
-target_link_libraries(BitCoinQuantization ${Boost_LIBRARIES} okex dingding)
+add_executable(BitCoinQuantization test.cpp comm/config.cpp)
+target_link_libraries(BitCoinQuantization ${Boost_LIBRARIES} okex dingding gridtrading)
