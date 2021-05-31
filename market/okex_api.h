@@ -4,18 +4,21 @@
 #include "market_impl/market_impl.h"
 #include "okex/okex.h"
 #include <boost/asio.hpp>
+#include <boost/json.hpp>
+#include <memory>
 
 namespace market {
 
 class OkexApi : public market_impl {
 public:
-  OkexApi(boost::asio::io_context &context, const std::string &api_key,
-       const std::string &secret_key, const std::string &passphrase);
+  OkexApi(boost::asio::io_context &context, boost::json::value config);
   ~OkexApi();
   std::string get_ticker_price(const std::string &instId);
   int buy_market(const std::string &instId, const std::string &quantity, const std::string &price);
   int sell_market(const std::string &instId, const std::string &quantity, const std::string &price);
-  Okex::Okex *okex_;
+  static boost::json::value init();
+private:
+  std::unique_ptr<Okex::Okex> okex_;
 };
 
 }

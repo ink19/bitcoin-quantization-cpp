@@ -6,14 +6,16 @@
 #include <memory>
 #include <string>
 #include <boost/asio.hpp>
+#include <boost/json.hpp>
 
 namespace notifier {
 
 class DingDingApi : public notifier_impl {
 public:
-  DingDingApi(boost::asio::io_context &context, const std::string &type, const std::string &token, const std::string &key_words);
+  DingDingApi(boost::asio::io_context &context, boost::json::value config);
   ~DingDingApi();
   int send_message(const std::string& level, const std::string &message);
+  static boost::json::value init();
 
 private:
   std::unique_ptr<DingDing::DingDing> notifier_;

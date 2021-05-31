@@ -7,15 +7,8 @@
 market::Market::Market(boost::asio::io_context &context, boost::json::value &market_config) {
   auto market_obj = market_config.as_object();
   if (market_obj["market"] == "okex") {
-    auto okex_config_obj = market_obj["okex"].as_object();
-    std::string okex_api_key = okex_config_obj["api_key"].as_string().c_str();
-    std::string okex_secret_key = okex_config_obj["secret_key"].as_string().c_str();
-    std::string okex_passphrase = okex_config_obj["passphrase"].as_string().c_str();
-    bool is_simulated = okex_config_obj["simulate"].as_bool();
-    auto market_okex = std::make_unique<OkexApi>(context, okex_api_key, okex_secret_key, okex_passphrase);
-    if (is_simulated) market_okex->okex_->set_simulated_trading();
-    
-    market_ = std::move(market_okex);
+    auto okex_config_obj = market_obj["okex"];
+    market_ = std::make_unique<OkexApi>(context, okex_config_obj);
   } else {
     std::cout << "Init Market Error." << std::endl;
     throw std::exception();
@@ -39,12 +32,7 @@ int market::Market::sell_market(const std::string &instId, const std::string &qu
 boost::json::value market::Market::init() {
   boost::json::value config_obj = {
     {"market", "okex"},
-    {"okex", {
-      {"api_key", ""},
-      {"secret_key", ""},
-      {"passphrase", ""},
-      {"simulate", false}
-    }}
+    {"okex", OkexApi::init()}
   };
   return config_obj;
 }

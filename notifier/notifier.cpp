@@ -7,10 +7,7 @@
 notifier::Notifier::Notifier(boost::asio::io_context &context, boost::json::value &notifier_config) {
   boost::json::object notifier_config_obj = notifier_config.as_object();
   if (notifier_config_obj["notifier"] == "dingding") {
-    boost::json::object dingding_config_obj = notifier_config_obj["dingding"].as_object();
-    std::string dingding_token = dingding_config_obj["token"].as_string().c_str();
-    std::string dingding_keywords = dingding_config_obj["keywords"].as_string().c_str();
-    notifier_ = std::make_unique<DingDingApi>(context, "keywords", dingding_token, dingding_keywords);
+    notifier_ = std::make_unique<DingDingApi>(context, notifier_config_obj["dingding"]);
   } else {
     std::cout << "Init Notifier Error." << std::endl;
     throw std::exception();
@@ -20,10 +17,7 @@ notifier::Notifier::Notifier(boost::asio::io_context &context, boost::json::valu
 boost::json::value notifier::Notifier::init() {
   boost::json::value notifier_config = {
     {"notifier", ""},
-    {"dingding", {
-      {"token", ""},
-      {"keywords", ""}
-    }}
+    {"dingding", DingDingApi::init()}
   };
   return notifier_config;
 }
