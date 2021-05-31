@@ -15,7 +15,6 @@ public:
   std::string get_ticker_price(const std::string &instId);
   int buy_market(const std::string &instId, const std::string &quantity, const std::string &price);
   int sell_market(const std::string &instId, const std::string &quantity, const std::string &price);
-private:
   Okex::Okex *okex_;
 };
 

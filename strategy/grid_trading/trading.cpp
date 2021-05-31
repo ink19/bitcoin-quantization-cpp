@@ -26,14 +26,21 @@ T round_towards_zero(T const& v)
         return floor(v*scale)/scale;
 }
 
+int grid_trading::trading::change_grid() {
+  mp::cpp_dec_float_100 unpre_buy_price = last_price * (1 - grid_size_);
+  buy_price = round_towards_zero<2>(unpre_buy_price);
+  mp::cpp_dec_float_100 unpre_top_price = last_price * (1 + grid_size_);
+  top_price = round_towards_zero<2>(unpre_top_price);
+
+  send_message_fun_("Warning", (boost::format("修改网格价格，补仓价格%1%，出仓价格%2%，网格上界%3%")%buy_price%sell_price%top_price).str());
+  return 0;
+}
+
 int grid_trading::trading::commit_price(const std::string &price) {
   mp::cpp_dec_float_100 now_price(price);
   if (last_price == -1) {
     last_price = now_price;
-    mp::cpp_dec_float_100 unpre_buy_price = last_price * (1 - grid_size_);
-    buy_price = round_towards_zero<2>(unpre_buy_price);
-    mp::cpp_dec_float_100 unpre_top_price = last_price * (1 + grid_size_);
-    sell_price = round_towards_zero<2>(unpre_top_price);
+    change_grid();
   } else {
     last_price = now_price;
   }
@@ -51,25 +58,19 @@ int grid_trading::trading::commit_price(const std::string &price) {
   }
 
   if (now_price > top_price) {
-    mp::cpp_dec_float_100 unpre_buy_price = now_price * (1 - grid_size_);
-    buy_price = round_towards_zero<2>(unpre_buy_price);
-    mp::cpp_dec_float_100 unpre_top_price = now_price * (1 + grid_size_);
-    sell_price = round_towards_zero<2>(unpre_top_price);
-    send_message_fun_("Warning", (boost::format("修改网格价格，补仓价格%1%，出仓价格%2%，网格上界%3%")%buy_price%sell_price%top_price).str());
+    change_grid();
   }
 
   if (now_price <= buy_price) {
     mp::cpp_dec_float_100 buy_size = quantity_/now_price;
+    buy_size = round_towards_zero<5>(buy_size);
+    
     trading_fun_(trading_side::buy, buy_size.str(), buy_price.str());
+    send_message_fun_("Warning", (boost::format("以%1%的价格买入%2%")%buy_price%buy_size).str());
     insert_trading(buy_size.str(), buy_price.str());
     get_next_sell();
 
-    mp::cpp_dec_float_100 unpre_buy_price = now_price * (1 - grid_size_);
-    buy_price = round_towards_zero<2>(unpre_buy_price);
-    mp::cpp_dec_float_100 unpre_top_price = now_price * (1 + grid_size_);
-    sell_price = round_towards_zero<2>(unpre_top_price);
-
-    send_message_fun_("Warning", (boost::format("修改网格价格，补仓价格%1%，出仓价格%2%，网格上界%3%")%buy_price%sell_price%top_price).str());
+    change_grid();
   }
 
   return 0;
@@ -79,18 +80,15 @@ int grid_trading::trading::grid_size(const std::string &size) {
   grid_size_ = mp::cpp_dec_float_100(size);
   if (last_price == -1) return 0;
 
-  mp::cpp_dec_float_100 unpre_buy_price = last_price * (1 - grid_size_);
-  buy_price = round_towards_zero<2>(unpre_buy_price);
-  mp::cpp_dec_float_100 unpre_top_price = last_price * (1 + grid_size_);
-  sell_price = round_towards_zero<2>(unpre_top_price);
+  change_grid();
   return 0;
 }
 
 int grid_trading::trading::get_next_sell() {
   auto last_trading = get_last_trading();
   last_stack_id = std::get<0>(last_trading);
-  sell_size = mp::cpp_dec_float_100(std::get<1>(last_trading));
-  sell_price = mp::cpp_dec_float_100(std::get<2>(last_trading)) * (1 + grid_size_);
+  sell_size = round_towards_zero<2>(mp::cpp_dec_float_100(std::get<1>(last_trading)));
+  sell_price = round_towards_zero<2>(mp::cpp_dec_float_100(std::get<2>(last_trading)) * (1 + grid_size_));
   return 0;
 }
 
@@ -117,18 +115,16 @@ int grid_trading::trading::init(const std::string &filename) {
 }
 
 grid_trading::trading::trading(const std::string &filename) {
-  trading_fun_ = market_func_t();
-  send_message_fun_ = send_message_t();
+  trading_fun_ = [](int, const std::string &, const std::string &){};
+  send_message_fun_ = [](const std::string &, const std::string &){};
   sql_conn_ = std::make_unique<sqlite::connection>(filename);
   step = count_trading();
   if (step != 0) {
     get_next_sell();
     last_price = sell_price / (1 + grid_size_);
     last_price = round_towards_zero<2>(last_price);
-    mp::cpp_dec_float_100 unpre_buy_price = last_price * (1 - grid_size_);
-    buy_price = round_towards_zero<2>(unpre_buy_price);
-    mp::cpp_dec_float_100 unpre_top_price = last_price * (1 + grid_size_);
-    sell_price = round_towards_zero<2>(unpre_top_price);
+    
+    change_grid();
   } else {
     last_price = -1;
   }
@@ -150,7 +146,7 @@ int grid_trading::trading::insert_trading(const std::string & size, const std::s
 }
 
 std::tuple<int, std::string, std::string> grid_trading::trading::get_last_trading() {
-  sqlite::query get_q(*sql_conn_, "SELECT * FROM trading ORDERY BY id DESC LIMIT 1;");
+  sqlite::query get_q(*sql_conn_, "SELECT * FROM trading ORDER BY id DESC LIMIT 1;");
   boost::shared_ptr<sqlite::result> sql_res = get_q.get_result();
   std::tuple<int, std::string, std::string> result;
   sql_res->next_row();

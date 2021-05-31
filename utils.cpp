@@ -52,7 +52,9 @@ void Utils::add_timer() {
 }
 
 void Utils::trading_handler() {
-  grid_trading_->commit_price(market_->get_ticker_price(config_->trading_pair));
+  auto price = market_->get_ticker_price(config_->trading_pair);
+  std::cout << price << std::endl;
+  grid_trading_->commit_price(price);
   add_timer();
 }
 

@@ -19,9 +19,11 @@ class Strategy<grid_trading::trading> {
 public:
   static boost::json::value init() {
     boost::json::value config_obj = {
-      "grid_trading", {
-        {"quantity", "10"},
-        {"grid_size", "0.02"}
+      {
+        "grid_trading", {
+          {"quantity", "10"},
+          {"grid_size", "0.02"}
+        }
       }
     };
     grid_trading::trading::init();
@@ -31,6 +33,7 @@ public:
 
   static std::shared_ptr<grid_trading::trading> get_inst(const boost::json::value &config) {
     auto config_obj = config.as_object();
+    config_obj = config_obj["grid_trading"].as_object();
     auto res = std::make_shared<grid_trading::trading>();
     std::string quantity(config_obj["quantity"].as_string().c_str());
     std::string grid_size(config_obj["grid_size"].as_string().c_str());

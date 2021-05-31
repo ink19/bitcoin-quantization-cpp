@@ -11,8 +11,11 @@ market::Market::Market(boost::asio::io_context &context, boost::json::value &mar
     std::string okex_api_key = okex_config_obj["api_key"].as_string().c_str();
     std::string okex_secret_key = okex_config_obj["secret_key"].as_string().c_str();
     std::string okex_passphrase = okex_config_obj["passphrase"].as_string().c_str();
-
-    market_ = std::make_unique<OkexApi>(context, okex_api_key, okex_secret_key, okex_passphrase);
+    bool is_simulated = okex_config_obj["simulate"].as_bool();
+    auto market_okex = std::make_unique<OkexApi>(context, okex_api_key, okex_secret_key, okex_passphrase);
+    if (is_simulated) market_okex->okex_->set_simulated_trading();
+    
+    market_ = std::move(market_okex);
   } else {
     std::cout << "Init Market Error." << std::endl;
     throw std::exception();
@@ -39,7 +42,8 @@ boost::json::value market::Market::init() {
     {"okex", {
       {"api_key", ""},
       {"secret_key", ""},
-      {"passphrase", ""}
+      {"passphrase", ""},
+      {"simulate", false}
     }}
   };
   return config_obj;

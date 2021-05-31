@@ -192,7 +192,11 @@ Okex::ss_map_sp_t Okex::Okex::trade_order(const std::string &instId, const std::
 
   auto request = generate_post_request(query_uri, boost::json::serialize(json_data));
 
-  auto respone_obj = boost::json::parse(send_request(request)).as_object();
+  std::string ret_str = send_request(request);
+  std::cout << *request << std::endl;
+  std::cout << ret_str << std::endl;
+
+  auto respone_obj = boost::json::parse(ret_str).as_object();
 
   (*result)["code"] = std::string(respone_obj["code"].as_string().data());
 

@@ -14,7 +14,7 @@ namespace mp = boost::multiprecision;
 
 namespace trading_side {
   const int sell = 0;
-  const int buy = 0;
+  const int buy = 1;
 }
 
 typedef std::function<void(int, const std::string&, const std::string&)> market_func_t;
@@ -64,7 +64,8 @@ private:
   int count_trading();
   int get_next_sell();
   std::tuple<int, std::string, std::string> get_last_trading();
-  
+  int change_grid();
+
   market_func_t trading_fun_;
   send_message_t send_message_fun_;
   std::unique_ptr<sqlite::connection> sql_conn_;
