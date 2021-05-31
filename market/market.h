@@ -1,22 +1,26 @@
-#ifndef _MARKET_OKEX_API_H
-#define _MARKET_OKEX_API_H
+#ifndef _MARKET_MARKET_H
+#define _MARKET_MARKET_H
 
 #include "market_impl/market_impl.h"
-#include "okex/okex.h"
+#include "okex_api.h"
+#include <memory>
+#include <boost/json.hpp>
 #include <boost/asio.hpp>
 
 namespace market {
 
-class OkexApi : public market_impl {
+class Market : public market_impl {
 public:
-  OkexApi(boost::asio::io_context &context, const std::string &api_key,
-       const std::string &secret_key, const std::string &passphrase);
-  ~OkexApi();
+  Market(boost::asio::io_context &context, boost::json::value &market_config);
+  // 对配置文件的初始化函数
+  static boost::json::value init();
+
+  ~Market();
   std::string get_ticker_price(const std::string &instId);
   int buy_market(const std::string &instId, const std::string &quantity, const std::string &price);
   int sell_market(const std::string &instId, const std::string &quantity, const std::string &price);
 private:
-  Okex::Okex *okex_;
+  std::unique_ptr<market_impl> market_;
 };
 
 }

@@ -4,49 +4,18 @@
 #include <fstream>
 #include <iostream>
 
-CommConfig::CommConfig(const std::string &filename) {
-  boost::json::stream_parser json_parser;
-  std::ifstream config_in;
-  config_in.open(filename);
-  std::string read_data;
-  json_parser.reset();
-  while (config_in >> read_data) {
-    json_parser.write(read_data);
-  }
-  json_parser.finish();
-  // json_parser.finish();
-  config_in.close();
-
-  config_json = json_parser.release();
+CommConfig::CommConfig(boost::json::value config) {
+  auto config_obj = config.as_object();
+  trading_pair = config_obj["goods"].as_string().c_str();
+  refresh_interval = config_obj["refresh_interval"].as_double();
 }
 
-int CommConfig::init(const std::string &filename) {
+CommConfig::~CommConfig(){}
+
+boost::json::value CommConfig::init() {
   boost::json::value json_data = {
-    {
-      "okex", {
-        {"api_key", ""},
-        {"secret_key", ""},
-        {"passphrase", ""}
-      }
-    },
-    {
-      "dingding", {
-        {"token", ""}
-      }
-    }, 
-    {
-      "net", {
-        {"size", 0}
-      }
-    }
+    {"refresh_interval", 1.0},
+    {"goods", "ETH-USDT"}
   };
-
-  std::string config_str = boost::json::serialize(json_data);
-  
-  std::ofstream config_out;
-  config_out.open(filename);
-  
-  config_out << config_str;
-
-  return 0;
+  return json_data;
 }

@@ -22,9 +22,9 @@ typedef std::function<void(const std::string&, const std::string&)> send_message
 
 class trading {
 public:
-  trading(const std::string &filename);
+  trading(const std::string &filename = "grid_trading.db");
   ~trading();
-  static int init(const std::string &filename);
+  static int init(const std::string &filename = "grid_trading.db");
   int commit_price(const std::string &price);
   int set_trading_fun(market_func_t trading_fun) {
     trading_fun_ = trading_fun;

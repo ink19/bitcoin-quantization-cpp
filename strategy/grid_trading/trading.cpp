@@ -28,7 +28,15 @@ T round_towards_zero(T const& v)
 
 int grid_trading::trading::commit_price(const std::string &price) {
   mp::cpp_dec_float_100 now_price(price);
-  last_price = now_price;
+  if (last_price == -1) {
+    last_price = now_price;
+    mp::cpp_dec_float_100 unpre_buy_price = last_price * (1 - grid_size_);
+    buy_price = round_towards_zero<2>(unpre_buy_price);
+    mp::cpp_dec_float_100 unpre_top_price = last_price * (1 + grid_size_);
+    sell_price = round_towards_zero<2>(unpre_top_price);
+  } else {
+    last_price = now_price;
+  }
   
   if (now_price >= sell_price && step > 0) {
     // 卖出
@@ -69,6 +77,8 @@ int grid_trading::trading::commit_price(const std::string &price) {
 
 int grid_trading::trading::grid_size(const std::string &size) {
   grid_size_ = mp::cpp_dec_float_100(size);
+  if (last_price == -1) return 0;
+
   mp::cpp_dec_float_100 unpre_buy_price = last_price * (1 - grid_size_);
   buy_price = round_towards_zero<2>(unpre_buy_price);
   mp::cpp_dec_float_100 unpre_top_price = last_price * (1 + grid_size_);
@@ -110,14 +120,18 @@ grid_trading::trading::trading(const std::string &filename) {
   trading_fun_ = market_func_t();
   send_message_fun_ = send_message_t();
   sql_conn_ = std::make_unique<sqlite::connection>(filename);
-  
-  get_next_sell();
-  last_price = sell_price / (1 + grid_size_);
-  last_price = round_towards_zero<2>(last_price);
-  mp::cpp_dec_float_100 unpre_buy_price = last_price * (1 - grid_size_);
-  buy_price = round_towards_zero<2>(unpre_buy_price);
-  mp::cpp_dec_float_100 unpre_top_price = last_price * (1 + grid_size_);
-  sell_price = round_towards_zero<2>(unpre_top_price);
+  step = count_trading();
+  if (step != 0) {
+    get_next_sell();
+    last_price = sell_price / (1 + grid_size_);
+    last_price = round_towards_zero<2>(last_price);
+    mp::cpp_dec_float_100 unpre_buy_price = last_price * (1 - grid_size_);
+    buy_price = round_towards_zero<2>(unpre_buy_price);
+    mp::cpp_dec_float_100 unpre_top_price = last_price * (1 + grid_size_);
+    sell_price = round_towards_zero<2>(unpre_top_price);
+  } else {
+    last_price = -1;
+  }
 }
 
 grid_trading::trading::~trading() { 

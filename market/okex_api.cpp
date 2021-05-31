@@ -11,9 +11,9 @@ market::OkexApi::~OkexApi() {
   delete okex_;
 }
 
-double market::OkexApi::get_ticker_price(const std::string &instId) {
+std::string market::OkexApi::get_ticker_price(const std::string &instId) {
   auto rdata = okex_->market_ticket(instId);
-  return std::atof((*rdata)["last"].c_str());
+  return (*rdata)["last"];
 }
 
 int market::OkexApi::buy_market(const std::string &instId, const std::string &quantity, const std::string &price) {
