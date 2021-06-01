@@ -84,33 +84,43 @@ private:
   get_request_sp_t generate_get_request_comm();
   get_request_sp_t generate_get_request(const std::string &request_path);
 
-  template <typename T> std::string send_request(T request) {
-    ssl::context ctx(ssl::context::tls);
+  template <typename T> std::string send_request(T request, int try_time = 0) {
+    std::string str_res = "";
+    try {
+      ssl::context ctx(ssl::context::tls);
 
-    ctx.set_default_verify_paths();
-    // ctx.set_verify_mode(ssl::context::verify_peer);
+      ctx.set_default_verify_paths();
+      // ctx.set_verify_mode(ssl::context::verify_peer);
 
-    asio::ip::tcp::resolver resolver(context_);
+      asio::ip::tcp::resolver resolver(context_);
 
-    // ssl 流
-    beast::ssl_stream<beast::tcp_stream> stream(context_, ctx);
+      // ssl 流
+      beast::ssl_stream<beast::tcp_stream> stream(context_, ctx);
 
-    if (!SSL_set_tlsext_host_name(stream.native_handle(), host_name.c_str())) {
-      beast::error_code ec{static_cast<int>(::ERR_get_error()),
-                           asio::error::get_ssl_category()};
-      throw beast::system_error{ec};
+      if (!SSL_set_tlsext_host_name(stream.native_handle(), host_name.c_str())) {
+        beast::error_code ec{static_cast<int>(::ERR_get_error()),
+                            asio::error::get_ssl_category()};
+        throw beast::system_error{ec};
+      }
+
+      auto const results = resolver.resolve(host_name, port);
+      beast::get_lowest_layer(stream).connect(results);
+
+      stream.handshake(ssl::stream_base::client);
+
+      http::write(stream, *request);
+      response_sp_t res = std::make_shared<response_t>();
+      beast::flat_buffer _buffer;
+      http::read(stream, _buffer, *res);
+      str_res = res->body();
+    } catch (std::exception e) {
+      if (try_time < 10) {
+        return send_request(request, try_time + 1);
+      } else {
+        throw e;
+      }
     }
-
-    auto const results = resolver.resolve(host_name, port);
-    beast::get_lowest_layer(stream).connect(results);
-
-    stream.handshake(ssl::stream_base::client);
-
-    http::write(stream, *request);
-    response_sp_t res = std::make_shared<response_t>();
-    beast::flat_buffer _buffer;
-    http::read(stream, _buffer, *res);
-    std::string str_res = res->body();
+    
     // beast::error_code ec;
     // stream.shutdown();
     return str_res;
