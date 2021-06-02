@@ -14,7 +14,7 @@
 
 std::string hmac_sha256_base64(const std::string &data, const std::string &key) {
   // std::cout << data << std::endl;
-  CryptoPP::HMAC<CryptoPP::SHA256> hmac((CryptoPP::byte *)key.c_str(),
+  CryptoPP::HMAC<CryptoPP::SHA256> hmac((Okex::byte *)key.c_str(),
                                         key.length());
   std::string mac, encoded;
 

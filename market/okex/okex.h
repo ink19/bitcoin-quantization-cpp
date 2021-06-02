@@ -12,7 +12,7 @@
 #include <string>
 
 namespace Okex {
-
+typedef unsigned char byte;
 namespace asio = boost::asio;
 namespace http = boost::beast::http;
 namespace ssl = boost::asio::ssl;
