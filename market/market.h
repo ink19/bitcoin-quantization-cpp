@@ -11,7 +11,7 @@ namespace market {
 
 class Market : public market_impl {
 public:
-  Market(boost::asio::io_context &context, boost::json::value &market_config);
+  Market(boost::asio::io_context &context, boost::json::value &market_config, std::string market_type = "");
   // 对配置文件的初始化函数
   static boost::json::value init();
 
