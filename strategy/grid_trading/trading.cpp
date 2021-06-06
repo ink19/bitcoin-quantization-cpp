@@ -10,85 +10,27 @@
 #include <sqlite/result.hpp>
 #include <boost/format.hpp>
 
-template <int decimals = 0, typename T>
-T round_towards_zero(T const& v)
-{
-    static const T scale = pow(T(10), decimals);
 
-    if (v.is_zero())
-        return v;
 
-    // ceil/floor is found via ADL and uses expression templates for optimization
-    if (v<0)
-        return ceil(v*scale)/scale;
-    else
-        // floor is found via ADL and uses expression templates for optimization
-        return floor(v*scale)/scale;
-}
-
-int grid_trading::trading::change_grid() {
-  mp::cpp_dec_float_100 unpre_buy_price = last_price * (1 - grid_size_);
-  buy_price = round_towards_zero<2>(unpre_buy_price);
-  mp::cpp_dec_float_100 unpre_top_price = last_price * (1 + grid_size_);
-  top_price = round_towards_zero<2>(unpre_top_price);
-
-  send_message_fun_("Warning", (boost::format("修改网格价格，补仓价格%1%，出仓价格%2%，网格上界%3%")%buy_price%sell_price%top_price).str());
-  return 0;
-}
-
-int grid_trading::trading::commit_price(const std::string &price) {
-  mp::cpp_dec_float_100 now_price(price);
-  if (last_price == -1) {
-    last_price = now_price;
-    change_grid();
-  } else {
-    last_price = now_price;
+int grid_trading::trading::sync_trading() {
+  balance_.clear();
+  sqlite::query get_q(*sql_conn_, "SELECT * FROM trading ORDER BY id;");
+  boost::shared_ptr<sqlite::result> sql_res = get_q.get_result();
+  std::tuple<int, std::string, std::string> result;
+  // sql_res->next_row();
+  // result = {sql_res->get_int(0), sql_res->get_string(1), sql_res->get_string(2)};
+  while (sql_res->next_row()) {
+    balance_.push_back({
+      sql_res->get_int(0),
+      boost::multiprecision::cpp_dec_float_100(sql_res->get_string(1)),
+      boost::multiprecision::cpp_dec_float_100(sql_res->get_string(2)),
+      sql_res->get_int(3)
+    });
   }
   
-  if (now_price >= sell_price && step > 0) {
-    // 卖出
-    trading_fun_(trading_side::sell, sell_size.str(), sell_price.str());
-    send_message_fun_("Warning", (boost::format("以%1%的价格卖出%2%")%sell_price%sell_size).str());
-    delete_trading(last_stack_id);
-    step = count_trading();
-    if (step > 0) {
-      get_next_sell();
-      send_message_fun_("Warning", (boost::format("修改网格价格，补仓价格%1%，出仓价格%2%，网格上界%3%")%buy_price%sell_price%top_price).str());
-    } 
+  if (balance_.size() != 0) {
+    step = balance_.back().step;
   }
-
-  if (now_price > top_price) {
-    change_grid();
-  }
-
-  if (now_price <= buy_price) {
-    mp::cpp_dec_float_100 buy_size = quantity_/now_price;
-    buy_size = round_towards_zero<5>(buy_size);
-    
-    trading_fun_(trading_side::buy, buy_size.str(), buy_price.str());
-    send_message_fun_("Warning", (boost::format("以%1%的价格买入%2%")%buy_price%buy_size).str());
-    insert_trading(buy_size.str(), buy_price.str());
-    get_next_sell();
-
-    change_grid();
-  }
-
-  return 0;
-}
-
-int grid_trading::trading::grid_size(const std::string &size) {
-  grid_size_ = mp::cpp_dec_float_100(size);
-  if (last_price == -1) return 0;
-
-  change_grid();
-  return 0;
-}
-
-int grid_trading::trading::get_next_sell() {
-  auto last_trading = get_last_trading();
-  last_stack_id = std::get<0>(last_trading);
-  sell_size = round_towards_zero<2>(mp::cpp_dec_float_100(std::get<1>(last_trading)));
-  sell_price = round_towards_zero<2>(mp::cpp_dec_float_100(std::get<2>(last_trading)) * (1 + grid_size_));
   return 0;
 }
 
@@ -108,7 +50,7 @@ int grid_trading::trading::init(const std::string &filename) {
   
   // 创建表
   sqlite::connection con(filename);
-  sqlite::execute temp_exec(con, "CREATE TABLE trading (id INTEGER PRIMARY KEY AUTOINCREMENT, size TEXT not null, price TEXT not null);", true);
+  sqlite::execute temp_exec(con, "CREATE TABLE trading (id INTEGER PRIMARY KEY AUTOINCREMENT, size TEXT not null, price TEXT not null, step INTEGER not null);", true);
   // temp_exec();
   
   return 0;
@@ -118,16 +60,106 @@ grid_trading::trading::trading(const std::string &filename) {
   trading_fun_ = [](int, const std::string &, const std::string &){};
   send_message_fun_ = [](const std::string &, const std::string &){};
   sql_conn_ = std::make_unique<sqlite::connection>(filename);
-  step = count_trading();
-  if (step != 0) {
-    get_next_sell();
-    last_price = sell_price / (1 + grid_size_);
-    last_price = round_towards_zero<2>(last_price);
-    
-    change_grid();
+  sync_trading();
+}
+
+int grid_trading::trading::buy_trading() {
+  int m_step = step;
+  if (m_step >= quantity_.size()) m_step = quantity_.size() - 1;
+  mp::cpp_dec_float_100 buy_size = quantity_[m_step];
+  buy_size = round_towards_zero(buy_size, 5);
+
+  trading_fun_(trading_side::buy, buy_size.str(), buy_price.str());
+
+  insert_trading(buy_size.str(), buy_price.str());
+  auto last_trading = get_last_trading();
+
+  balance_.push_back({
+    std::get<0>(last_trading),
+    buy_size,
+    buy_price,
+    m_step
+  });
+  step++;
+
+  send_message_fun_("Warning", (boost::format("以%1%的价格买入%2%")%buy_price.str()%buy_size.str()).str());
+
+  return 0;
+}
+
+int grid_trading::trading::commit_price(const std::string &price) {
+  mp::cpp_dec_float_100 cpp_price(price);
+  
+  if (last_price == -1) {
+    last_price = cpp_price;
+    adjust_grid();
   } else {
-    last_price = -1;
+    last_price = cpp_price;
   }
+
+  if (buy_price >= last_price) {
+    buy_trading();
+    adjust_grid();
+  } 
+
+  if (last_price >= upper_price) {
+    adjust_grid();
+  }
+
+
+  while (balance_.size() != 0) {
+    mp::cpp_dec_float_100 sell_price = balance_.back().price * (1 + grid_size_);
+    sell_price = round_towards_zero(buy_price);
+    if (last_price >= sell_price) {
+      sell_trading();
+    } else {
+      break;
+    }
+  }
+
+  return 0;
+}
+
+int grid_trading::trading::sell_trading() {
+  if (balance_.size() == 0) return -1;
+  auto sell_goods = balance_.back();
+  mp::cpp_dec_float_100 sell_price = sell_goods.price * (1 + grid_size_);
+  sell_price = round_towards_zero(buy_price);
+  
+  trading_fun_(trading_side::sell, sell_goods.size.str(), sell_price.str());
+  
+  delete_trading(sell_goods.trade_id);
+  balance_.pop_back();
+  send_message_fun_("Warning", (boost::format("以%1%的价格买出%2%")%sell_price.str()%sell_goods.size.str()).str());
+  if (step != 0) step--;
+  return 0;
+}
+
+int grid_trading::trading::grid_size(const std::string &size) {
+  grid_size_ = mp::cpp_dec_float_100(size);
+
+  if (last_price != -1) {
+    adjust_grid();
+  }
+  return 0;
+}
+
+int grid_trading::trading::adjust_grid() {
+  if (last_price == -1) return 0;
+  buy_price = last_price * (1 - grid_size_);
+  buy_price = round_towards_zero(buy_price);
+  upper_price = last_price * (1 + grid_size_);
+  upper_price = round_towards_zero(upper_price);
+
+  mp::cpp_dec_float_100 sell_price;
+  if (balance_.size() == 0) {
+    sell_price = -1;
+  } else {
+    sell_price = balance_.back().price * (1 + grid_size_);
+  }
+
+  send_message_fun_("Warning", (boost::format("修改网格价格买入价格为%1%，上界价格为%2%，卖出价格为%3%")%buy_price.str()%upper_price.str()%sell_price.str()).str());
+  return 0;
 }
 
 grid_trading::trading::~trading() { 

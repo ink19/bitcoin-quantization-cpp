@@ -7,6 +7,7 @@
 #include <tuple>
 #include <memory>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include <vector>
 
 namespace grid_trading {
 
@@ -16,6 +17,13 @@ namespace trading_side {
   const int sell = 0;
   const int buy = 1;
 }
+
+struct balance_t {
+  int trade_id;
+  boost::multiprecision::cpp_dec_float_100 size;
+  boost::multiprecision::cpp_dec_float_100 price;
+  int step;
+};
 
 typedef std::function<void(int, const std::string&, const std::string&)> market_func_t;
 typedef std::function<void(const std::string&, const std::string&)> send_message_t;
@@ -51,20 +59,45 @@ public:
   }
   
   std::string quantity() {
-    return quantity_.str();
+    if (step >= quantity_.size()) {
+      return quantity_.back().str();
+    } else {
+      return quantity_[step].str();
+    }
   };
 
-  int quantity(std::string stable_quantity) {
-    quantity_ = mp::cpp_dec_float_100(stable_quantity);
+  int quantity(std::vector<std::string> stable_quantity) {
+    for (auto iquantity : stable_quantity) {
+      quantity_.push_back(mp::cpp_dec_float_100(iquantity));
+    }
     return 0;
   }
 private:
   int insert_trading(const std::string & size, const std::string & price);
   int delete_trading(int id);
   int count_trading();
-  int get_next_sell();
+  // 对数据库中的交易进行同步
+  int sync_trading();
+  // 调整网格价格
+  int adjust_grid();
+  
+  int buy_trading();
+  int sell_trading();
+
   std::tuple<int, std::string, std::string> get_last_trading();
-  int change_grid();
+
+  template<typename T>
+  T round_towards_zero(T v, int precision = -1) {
+    if (precision == -1) precision = precision_;
+    static const T scale = pow(T(10), precision);
+    if (v.is_zero())
+        return v;
+
+    if (v<0)
+        return ceil(v*scale)/scale;
+    else
+        return floor(v*scale)/scale;
+  }
 
   market_func_t trading_fun_;
   send_message_t send_message_fun_;
@@ -72,18 +105,15 @@ private:
 
   mp::cpp_dec_float_100 grid_size_ = 0.02; // 百分之2
   int precision_ = 2;
-  mp::cpp_dec_float_100 quantity_ = 10;
+  std::vector<mp::cpp_dec_float_100> quantity_ = {10};
+  std::vector<balance_t> balance_;
+  mp::cpp_dec_float_100 last_price = -1;
 
-  // 网格信息
+  // 网格价格
   mp::cpp_dec_float_100 buy_price;
-  mp::cpp_dec_float_100 top_price;
-  mp::cpp_dec_float_100 last_price;
-
-  mp::cpp_dec_float_100 sell_price;
-  mp::cpp_dec_float_100 sell_size;
+  mp::cpp_dec_float_100 upper_price;
 
   int step = 0;
-  int last_stack_id = 0;
 };
 
 }

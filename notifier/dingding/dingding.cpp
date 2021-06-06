@@ -17,7 +17,7 @@ int DingDing::DingDing::send_text(const std::string &level, const std::string &m
   }));
 
   auto request = generate_post_request(message_json_s);
-  std::cout << *request << std::endl;
+  // std::cout << *request << std::endl;
 
   std::string response_data = send_request(request);
 
