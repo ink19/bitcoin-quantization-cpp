@@ -66,12 +66,12 @@ grid_trading::trading::trading(const std::string &filename) {
 int grid_trading::trading::buy_trading() {
   int m_step = step;
   if (m_step >= quantity_.size()) m_step = quantity_.size() - 1;
-  mp::cpp_dec_float_100 buy_size = quantity_[m_step];
+  mp::cpp_dec_float_100 buy_size = quantity_[m_step] / last_price;
   buy_size = round_towards_zero(buy_size, 5);
 
   trading_fun_(trading_side::buy, buy_size.str(), buy_price.str());
 
-  insert_trading(buy_size.str(), buy_price.str());
+  insert_trading(buy_size.str(), buy_price.str(), m_step);
   auto last_trading = get_last_trading();
 
   balance_.push_back({
@@ -109,7 +109,7 @@ int grid_trading::trading::commit_price(const std::string &price) {
 
   while (balance_.size() != 0) {
     mp::cpp_dec_float_100 sell_price = balance_.back().price * (1 + grid_size_);
-    sell_price = round_towards_zero(buy_price);
+    sell_price = round_towards_zero(sell_price);
     if (last_price >= sell_price) {
       sell_trading();
     } else {
@@ -124,7 +124,7 @@ int grid_trading::trading::sell_trading() {
   if (balance_.size() == 0) return -1;
   auto sell_goods = balance_.back();
   mp::cpp_dec_float_100 sell_price = sell_goods.price * (1 + grid_size_);
-  sell_price = round_towards_zero(buy_price);
+  sell_price = round_towards_zero(sell_price);
   
   trading_fun_(trading_side::sell, sell_goods.size.str(), sell_price.str());
   
@@ -165,9 +165,9 @@ int grid_trading::trading::adjust_grid() {
 grid_trading::trading::~trading() { 
 }
 
-int grid_trading::trading::insert_trading(const std::string & size, const std::string & price) {
-  sqlite::execute ins(*sql_conn_, "INSERT INTO trading (size, price) VALUES (?, ?);");
-  ins % size % price;
+int grid_trading::trading::insert_trading(const std::string & size, const std::string & price, const int step) {
+  sqlite::execute ins(*sql_conn_, "INSERT INTO trading (size, price, step) VALUES (?, ?, ?);");
+  ins % size % price % step;
   try {
     ins();
   } catch (sqlite::database_exception e) {

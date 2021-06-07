@@ -73,7 +73,7 @@ public:
     return 0;
   }
 private:
-  int insert_trading(const std::string & size, const std::string & price);
+  int insert_trading(const std::string & size, const std::string & price, const int step);
   int delete_trading(int id);
   int count_trading();
   // 对数据库中的交易进行同步
@@ -89,11 +89,12 @@ private:
   template<typename T>
   T round_towards_zero(T v, int precision = -1) {
     if (precision == -1) precision = precision_;
-    static const T scale = pow(T(10), precision);
+
+    T scale = pow(T(10), precision);
+
     if (v.is_zero())
         return v;
-
-    if (v<0)
+    if (v < 0)
         return ceil(v*scale)/scale;
     else
         return floor(v*scale)/scale;
