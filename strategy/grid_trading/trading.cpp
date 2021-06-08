@@ -30,7 +30,10 @@ int grid_trading::trading::sync_trading() {
   
   if (balance_.size() != 0) {
     step = balance_.back().step;
+  } else {
+    step = 0;
   }
+  
   return 0;
 }
 
@@ -130,7 +133,7 @@ int grid_trading::trading::sell_trading() {
   
   delete_trading(sell_goods.trade_id);
   balance_.pop_back();
-  send_message_fun_("Warning", (boost::format("以%1%的价格买出%2%")%sell_price.str()%sell_goods.size.str()).str());
+  send_message_fun_("Warning", (boost::format("以%1%的价格卖出%2%")%sell_price.str()%sell_goods.size.str()).str());
   if (step != 0) step--;
   return 0;
 }
@@ -157,6 +160,8 @@ int grid_trading::trading::adjust_grid() {
   } else {
     sell_price = balance_.back().price * (1 + grid_size_);
   }
+
+  sell_price = round_towards_zero(sell_price);
 
   send_message_fun_("Warning", (boost::format("修改网格价格买入价格为%1%，上界价格为%2%，卖出价格为%3%")%buy_price.str()%upper_price.str()%sell_price.str()).str());
   return 0;
