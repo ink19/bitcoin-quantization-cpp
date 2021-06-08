@@ -75,7 +75,7 @@ public:
   ss_map_sp_t trade_order(const std::string &instId, const std::string &tdMode,
                           const std::string &side, const std::string &ordType,
                           const std::string &sz, const std::string &px);
-
+  ss_map_sp_t get_trading_fee(const std::string &instId);
 private:
   post_request_sp_t generate_post_request_comm();
   post_request_sp_t generate_post_request(const std::string &request_path,

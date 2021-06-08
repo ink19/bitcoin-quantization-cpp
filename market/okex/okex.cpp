@@ -118,6 +118,32 @@ Okex::get_request_sp_t Okex::Okex::generate_get_request_comm() {
   return req_;
 }
 
+Okex::ss_map_sp_t Okex::Okex::get_trading_fee(const std::string &instId) {
+  ss_map_sp_t result = std::make_shared<ss_map_t>();
+
+  std::string query_uri = "/api/v5/account/trade-fee";
+
+  query_uri += "?instType=SPOT&instId="+instId;
+
+
+  auto request = generate_get_request(query_uri);
+  auto respone_body = send_request(request);
+  // std::cout << respone_body << std::endl;
+  auto json_obj = boost::json::parse(respone_body).as_object();
+
+  if (json_obj["code"].as_string() != "0") {
+    std::cout << json_obj["msg"].as_string() << std::endl;
+    throw std::exception();
+  }
+
+  for (auto item : json_obj["data"].as_array()[0].as_object()) {
+    (*result)[std::string(item.key().data())] =
+        std::string(item.value().as_string().data());
+  }
+
+  return result;
+}
+
 Okex::ss_map_sp_t
 Okex::Okex::account_balance(const std::vector<std::string> &ccy) {
   std::string query_uri = "/api/v5/account/balance";

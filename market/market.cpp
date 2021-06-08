@@ -40,6 +40,10 @@ int market::Market::sell_market(const std::string &instId, const std::string &qu
   return market_->sell_market(instId, quantity, price);
 }
 
+std::string market::Market::get_trading_fee(const std::string &instId) {
+  return market_->get_trading_fee(instId);
+}
+
 boost::json::value market::Market::init() {
   boost::json::value config_obj = {
     {"market", "okex"},

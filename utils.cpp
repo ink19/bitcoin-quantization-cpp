@@ -27,6 +27,8 @@ Utils::Utils(const std::string &filename) {
   market_ = std::make_shared<market::Market>(*context_, all_config_json["market"]);
   notifier_ = std::make_shared<notifier::Notifier>(*context_, all_config_json["notifier"]);
   config_ = std::make_shared<CommConfig>(all_config_json["comm"]);
+  std::string trading_fee = market_->get_trading_fee(config_->trading_pair);
+  // std::exit(0);
   // trading set
   grid_trading_ = strategy::Strategy<grid_trading::trading>::get_inst(all_config_json["strategy"]);
   grid_trading_->set_trading_fun([this](int side, const std::string &size, const std::string &price){

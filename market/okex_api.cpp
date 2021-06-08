@@ -23,6 +23,11 @@ std::string market::OkexApi::get_ticker_price(const std::string &instId) {
   return (*rdata)["last"];
 }
 
+std::string market::OkexApi::get_trading_fee(const std::string &instId) {
+  auto rdata = okex_->get_trading_fee(instId);
+  return (*rdata)["taker"];
+}
+
 int market::OkexApi::buy_market(const std::string &instId, const std::string &quantity, const std::string &price) {
   auto rdata = okex_->trade_order(instId, Okex::trade_order::tdMode::cash, Okex::trade_order::posSide::buy, Okex::trade_order::ordType::limit, quantity, price);
   return std::atoi((*rdata)["data"].c_str());

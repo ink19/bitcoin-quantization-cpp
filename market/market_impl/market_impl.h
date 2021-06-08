@@ -21,6 +21,9 @@ public:
                           const std::string &price) {
     return 0;
   };
+  virtual std::string get_trading_fee(const std::string &instId){
+    return "-0.001";
+  }
 };
 
 } // namespace market

@@ -29,6 +29,9 @@ public:
     market_ = std::move(market);
     return 0;
   }
+  std::string get_trading_fee(const std::string &instId) {
+    return market_->get_trading_fee(instId);
+  }
 private:
   std::shared_ptr<market_impl> market_;
   std::ofstream out_stream_;
