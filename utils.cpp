@@ -33,11 +33,12 @@ Utils::Utils(const std::string &filename) {
   grid_trading_ = strategy::Strategy<grid_trading::trading>::get_inst(all_config_json["strategy"]);
   grid_trading_->set_trading_fun([this](int side, const std::string &size, const std::string &price){
     if (side == grid_trading::trading_side::buy) {
-      market_->buy_market(config_->trading_pair, size, price);
+      return market_->buy_market(config_->trading_pair, size, price);
     } else if (side == grid_trading::trading_side::sell) {
-      market_->sell_market(config_->trading_pair, size, price);
+      return market_->sell_market(config_->trading_pair, size, price);
+    } else {
+      return 0;
     }
-    return 0;
   });
   grid_trading_->set_send_message_fun([this](const std::string &level, const std::string &message) {
     return notifier_->send_message(level, message);

@@ -30,12 +30,20 @@ std::string market::OkexApi::get_trading_fee(const std::string &instId) {
 
 int market::OkexApi::buy_market(const std::string &instId, const std::string &quantity, const std::string &price) {
   auto rdata = okex_->trade_order(instId, Okex::trade_order::tdMode::cash, Okex::trade_order::posSide::buy, Okex::trade_order::ordType::limit, quantity, price);
-  return std::atoi((*rdata)["data"].c_str());
+  int result_data = std::atoi((*rdata)["code"].c_str());
+  if (result_data != 0) {
+    std::cout << (*rdata)["msg"] << std::endl;
+  }
+  return result_data;
 }
 
 int market::OkexApi::sell_market(const std::string &instId, const std::string &quantity, const std::string &price) {
   auto rdata = okex_->trade_order(instId, Okex::trade_order::tdMode::cash, Okex::trade_order::posSide::sell, Okex::trade_order::ordType::limit, quantity, price);
-  return std::atoi((*rdata)["data"].c_str());
+  int result_data = std::atoi((*rdata)["code"].c_str());
+  if (result_data != 0) {
+    std::cout << (*rdata)["msg"] << std::endl;
+  }
+  return result_data;
 }
 
 boost::json::value market::OkexApi::init() {

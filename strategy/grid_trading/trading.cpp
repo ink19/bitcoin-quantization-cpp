@@ -60,8 +60,8 @@ int grid_trading::trading::init(const std::string &filename) {
 }
 
 grid_trading::trading::trading(const std::string &filename) {
-  trading_fun_ = [](int, const std::string &, const std::string &){};
-  send_message_fun_ = [](const std::string &, const std::string &){};
+  trading_fun_ = [](int, const std::string &, const std::string &) -> int { return 0;};
+  send_message_fun_ = [](const std::string &, const std::string &) -> int { return 0;};
   sql_conn_ = std::make_unique<sqlite::connection>(filename);
   sync_trading();
 }
@@ -72,7 +72,10 @@ int grid_trading::trading::buy_trading() {
   mp::cpp_dec_float_100 buy_size = quantity_[m_step] / last_price;
   buy_size = round_towards_zero(buy_size, 5);
 
-  trading_fun_(trading_side::buy, buy_size.str(), buy_price.str());
+  if (trading_fun_(trading_side::buy, buy_size.str(), buy_price.str()) != 0) {
+    send_message_fun_("Error", (boost::format("以%1%的价格买入%2%失败.")%buy_price.str()%buy_price.str()).str());
+    return 0;
+  }
 
   // 通过删除收益，获取真实的balance
   buy_size = buy_size * (1 + trading_fee_);
@@ -133,7 +136,10 @@ int grid_trading::trading::sell_trading() {
   mp::cpp_dec_float_100 sell_price = sell_goods.price * (1 + grid_size_);
   sell_price = round_towards_zero(sell_price);
   
-  trading_fun_(trading_side::sell, sell_goods.size.str(), sell_price.str());
+  if (trading_fun_(trading_side::sell, sell_goods.size.str(), sell_price.str()) != 0) {
+    send_message_fun_("Error", (boost::format("以%1%的价格卖出%2%失败")%sell_price.str()%sell_goods.size.str()).str());
+    return 0;
+  }
   
   delete_trading(sell_goods.trade_id);
   balance_.pop_back();

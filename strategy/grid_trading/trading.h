@@ -25,8 +25,8 @@ struct balance_t {
   int step;
 };
 
-typedef std::function<void(int, const std::string&, const std::string&)> market_func_t;
-typedef std::function<void(const std::string&, const std::string&)> send_message_t;
+typedef std::function<int(int, const std::string&, const std::string&)> market_func_t;
+typedef std::function<int(const std::string&, const std::string&)> send_message_t;
 
 class trading {
 public:
