@@ -74,6 +74,10 @@ int grid_trading::trading::buy_trading() {
 
   trading_fun_(trading_side::buy, buy_size.str(), buy_price.str());
 
+  // 通过删除收益，获取真实的balance
+  buy_size = buy_size * (1 + trading_fee_);
+  buy_size = round_towards_zero(buy_size, 5);
+
   insert_trading(buy_size.str(), buy_price.str(), m_step);
   auto last_trading = get_last_trading();
 

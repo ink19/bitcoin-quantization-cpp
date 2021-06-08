@@ -47,6 +47,15 @@ public:
     return grid_size_.str(2, std::ios_base::fixed);
   };
 
+  std::string trading_fee() {
+    return trading_fee_.str();
+  }
+
+  int trading_fee(const std::string &fee) {
+    trading_fee_ = mp::cpp_dec_float_100(fee);
+    return 0;
+  }
+
   int precision() {
     return precision_;
   }
@@ -109,6 +118,7 @@ private:
   std::vector<mp::cpp_dec_float_100> quantity_ = {};
   std::vector<balance_t> balance_;
   mp::cpp_dec_float_100 last_price = -1;
+  mp::cpp_dec_float_100 trading_fee_ = -0.001;
 
   // 网格价格
   mp::cpp_dec_float_100 buy_price;

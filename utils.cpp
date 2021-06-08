@@ -42,6 +42,7 @@ Utils::Utils(const std::string &filename) {
   grid_trading_->set_send_message_fun([this](const std::string &level, const std::string &message) {
     return notifier_->send_message(level, message);
   });
+  grid_trading_->trading_fee(trading_fee);
 
   // event loop
   timer_ = std::make_shared<boost::asio::steady_timer>(*context_);
