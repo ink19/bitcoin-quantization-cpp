@@ -11,6 +11,8 @@
 
 namespace market {
 
+namespace mp = boost::multiprecision;
+
 // 替换掉交易部分，只保留信息获取部分
 class FakeMarket : public market_impl {
 public:
@@ -30,13 +32,20 @@ public:
     return 0;
   }
   std::string get_trading_fee(const std::string &instId) {
-    return market_->get_trading_fee(instId);
+    auto result = market_->get_trading_fee(instId);
+    trading_fee_ = mp::cpp_dec_float_100(result);
+    return result;
   }
 private:
+  int read_pocket_book();
+  int write_pocket_book();
+  
+  mp::cpp_dec_float_100 trading_fee_;
   std::shared_ptr<market_impl> market_;
   std::ofstream out_stream_;
   std::map<std::string, boost::multiprecision::cpp_dec_float_100> account_;
   boost::multiprecision::cpp_dec_float_100 balance_;
+  std::string pocket_book_;
 };
 
 };
