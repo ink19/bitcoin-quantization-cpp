@@ -2,7 +2,6 @@
 #define _NOTIFIER_NOTIFIER_H
 
 #include "notifier_impl/notifier_impl.h"
-#include "dingding.h"
 #include <memory>
 #include <boost/json.hpp>
 #include <boost/asio.hpp>
