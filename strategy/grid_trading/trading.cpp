@@ -73,7 +73,7 @@ int grid_trading::trading::buy_trading() {
   buy_size = round_towards_zero(buy_size, 5);
 
   if (trading_fun_(trading_side::buy, buy_size.str(), buy_price.str()) != 0) {
-    send_message_fun_("Error", (boost::format("以%1%的价格买入%2%失败.")%buy_price.str()%buy_price.str()).str());
+    send_message_fun_("Error", (boost::format("以%1%的价格买入%2%失败.")%buy_price.str()%buy_size.str()).str());
     return 0;
   }
 
