@@ -106,7 +106,7 @@ private:
 
   mp::cpp_dec_float_100 grid_size_ = 0.02; // 百分之2
   int precision_ = 2;
-  std::vector<mp::cpp_dec_float_100> quantity_ = {10};
+  std::vector<mp::cpp_dec_float_100> quantity_ = {};
   std::vector<balance_t> balance_;
   mp::cpp_dec_float_100 last_price = -1;
 

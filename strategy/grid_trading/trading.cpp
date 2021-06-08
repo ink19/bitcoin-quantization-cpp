@@ -92,7 +92,7 @@ int grid_trading::trading::buy_trading() {
 
 int grid_trading::trading::commit_price(const std::string &price) {
   mp::cpp_dec_float_100 cpp_price(price);
-  
+
   if (last_price == -1) {
     last_price = cpp_price;
     adjust_grid();
